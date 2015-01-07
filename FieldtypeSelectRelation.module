@@ -1,0 +1,146 @@
+<?php
+
+/**
+ * ProcessWire Fieldtype Select Relation
+ *
+ * See README.md for usage instructions.
+ *
+ * ProcessWire 2.x
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * @author Tabea David <td@kf-interactive.com>
+ * @version 0.0.1
+ * @copyright Copyright (c) 2014 KF Interactive, www.kf-interactive.com, <info@kf-interactive.com>
+ * @see https://github.com/justonestep/processwire-fieldtypeselectrelation
+ * @see http://www.processwire.com
+ *
+ */
+
+/**
+ * Class FieldtypeSelectRelation
+ */
+class FieldtypeSelectRelation extends Fieldtype {
+
+  /**
+   * Retrieves module meta data
+   * Implementation of the Module interface
+   *
+   * @return array
+   * @see http://processwire.com/apigen/class-Module.html
+   */
+  public static function getModuleInfo() {
+    return array(
+      'title' => 'Select Relation',
+      'version' => 001,
+      'summary' => 'This Fieldtype creates a select list in relation to another field.',
+      'href' => 'https://github.com/justonestep/processwire-fieldtypeselectrelation',
+    );
+  }
+
+  /**
+   * getInputfield - get basic fields and their database schema
+   *
+   * @param Page $page
+   * @param Field $field
+   */
+  public function getInputfield(Page $page, Field $fields) {
+    if (!empty($fields->select_field_options)) {
+      $inputfield = $this->modules->get('InputfieldSelect');
+      $user = wire('user');
+
+      // check if table is multi-lingual
+      $dbName = wire('config')->dbName;
+      $table = 'field_' . strtolower($fields->select_field_options);
+      $column = 'data';
+
+      if ($user->language->isDefaultLanguage === false) {
+        $langID = $user->language->id;
+        $checkColumn = 'data' . $langID;
+
+        $query = array(
+          'select' => 'SELECT COUNT(*) FROM information_schema.COLUMNS',
+          'where' => array(
+            ' WHERE TABLE_SCHEMA="' . $dbName . '"',
+            ' && TABLE_NAME="' . $table . '"',
+            ' && COLUMN_NAME="' . $checkColumn . '"'
+          )
+        );
+
+        $result = wire('db')->query($query['select'] . implode('', $query['where']));
+        $count = array();
+        while ($row = $result->fetch_row()) $count[] = $row[0];
+
+        if ((int)reset($count) > 0) {
+          $column = $checkColumn;
+        }
+      }
+
+      $sql = 'SELECT DISTINCT ' . $column . ' FROM ' . $table . ' WHERE ' . $column . '!=""';
+      $optionResult = wire('db')->query($sql);
+      $options = array();
+      while ($row = $optionResult->fetch_row()) $options[] = $row[0];
+
+      // add options
+      foreach($options as $option) $inputfield->addOption($option, $option);
+      return $inputfield;
+    }
+  }
+
+  /**
+   * Return the DB schema used by this field's table
+   *
+   * @param Field $field
+   */
+  public function getDatabaseSchema(Field $field) {
+    $schema = parent::getDatabaseSchema($field);
+    $schema['data'] = 'text NOT NULL';
+    $schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(255))';
+    $schema['keys']['data'] = 'FULLTEXT KEY `data` (`data`)';
+
+    return $schema;
+  }
+
+  /**
+   * sanitizeValue
+   *
+   * @param Page $page
+   * @param Field $field
+   * @param string $value
+   */
+  public function sanitizeValue(Page $page, Field $field, $value) {
+    return trim($value);
+  }
+
+  /**
+   * get config inputfields
+   *
+   * @param Field $fields
+   */
+  public function ___getConfigInputfields(Field $fields) {
+    $excludeTypes = '"FieldtypeModule", "FieldtypePassword", "FieldtypePage", "FieldtypeFile", "FieldtypeRepeater"';
+    $query = array(
+      'select' => 'SELECT name FROM fields',
+      'where' => array(
+        ' WHERE type NOT IN (' . $excludeTypes . ')'
+      )
+    );
+
+    $result = wire('db')->query($query['select'] . implode('', $query['where']));
+    $options = array();
+    while ($row = $result->fetch_row()) $options[] = $row[0];
+
+    $inputfields = parent::___getConfigInputfields($fields);
+
+    // list of options
+    $inputfield = $this->modules->get('InputfieldSelect');
+    $inputfield->label = $this->_('Select Options');
+    $inputfield->attr('name', 'select_field_options');
+    $inputfield->attr('value', $fields->select_field_options);
+    $inputfield->description = $this->_('Select the field from which the select list should be filled.');
+    foreach($options as $option) $inputfield->addOption($option, $option);
+    $inputfields->append($inputfield);
+
+    return $inputfields;
+  }
+
+}
