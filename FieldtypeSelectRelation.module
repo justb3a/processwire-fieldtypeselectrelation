@@ -49,7 +49,7 @@ class FieldtypeSelectRelation extends Fieldtype {
     $chooseFieldField->label = 'Field';
     $chooseFieldField->attr('name', 'select_field_options');
     $chooseFieldField->attr('value', $fields->select_field_options);
-    $chooseFieldField->description = $this->_('Select the field from which the select list should be filled.');
+    $chooseFieldField->description = $this->_('Select the field from which the select list should be populated.');
     $chooseFieldField->addOption('', '');
     $chooseFieldField->required = 1;
     $chooseFieldField->columnWidth = 25;
@@ -71,7 +71,7 @@ class FieldtypeSelectRelation extends Fieldtype {
     $chooseRepeaterField->label = 'Repeater';
     $chooseRepeaterField->attr('name', 'select_repeater_options');
     $chooseRepeaterField->attr('value', $fields->select_repeater_options);
-    $chooseRepeaterField->description = $this->_('Select the field from which the select list should be filled.');
+    $chooseRepeaterField->description = $this->_('If the field you chose is included in a repeater, select the repeater here.');
     $chooseRepeaterField->columnWidth = 25;
 
     $chooseRepeaterField->addOption('', '');
@@ -86,7 +86,7 @@ class FieldtypeSelectRelation extends Fieldtype {
     $chooseTemplateField->label = 'Template(s)';
     $chooseTemplateField->attr('name', 'select_template_options');
     $chooseTemplateField->attr('value', $fields->select_template_options);
-    $chooseTemplateField->description = 'Select the template from which the select list should be filled.';
+    $chooseTemplateField->description = 'Optional: Restrict your result by setting certain template(s).';
     $chooseTemplateField->columnWidth = 25;
     $chooseTemplateField->addOption('', '');
     foreach (wire('templates') as $template) {
@@ -98,7 +98,7 @@ class FieldtypeSelectRelation extends Fieldtype {
     $choosePagesField->label = 'Page(s)';
     $choosePagesField->attr('name', 'select_page_options');
     $choosePagesField->attr('value', $fields->select_page_options);
-    $choosePagesField->description = 'Select the page(s) from which the select list should be filled.';
+    $choosePagesField->description = 'Optional: Restrict your result by setting certain page(s).';
     $choosePagesField->columnWidth = 25;
     $choosePagesField->addOption('', '');
     $pa = $this->pages->find('has_parent!=2,id!=2|7,status<' . Page::statusTrash . ',include=all');
@@ -111,7 +111,7 @@ class FieldtypeSelectRelation extends Fieldtype {
 
     $checkUseDistinctField = $this->modules->get('InputfieldCheckbox');
     $checkUseDistinctField->label = 'Enable unique values';
-    $checkUseDistinctField->label2 = 'unique values';
+    // $checkUseDistinctField->label2 = 'unique values';
     $checkUseDistinctField->attr('name', 'use_distinct');
     $checkUseDistinctField->attr('checked', empty($fields->use_distinct ? '' : 'checked'));
     $checkUseDistinctField->description = 'Check this field if you want to avoid duplicate values.';
@@ -148,22 +148,39 @@ class FieldtypeSelectRelation extends Fieldtype {
         if (!empty($fields->select_repeater_options)) {
           // it's an repeater
           if ($p->{$fields->select_repeater_options}) {
-            foreach ($p->{$fields->select_repeater_options} as $t) {
-              if ($t->{$fields->select_field_options} != '') {
+            foreach ($p->{$fields->select_repeater_options} as $r) {
+
+              $value = $this->sanitizer->text($r->{$fields->select_field_options});
+              if ($value != '') {
                 if ((int)$fields->use_distinct === 1) {
-                  $inputfield->addOption($t->{$fields->select_field_options}, $t->{$fields->select_field_options});
+                  $inputfield->addOption($value, $value);
                 } else {
-                  $inputfield->addOption($t->id, $t->{$fields->select_field_options});
+                  $inputfield->addOption($r->id, $value);
                 }
               }
             }
           }
         } else {
           // normal field
-          if ((int)$fields->use_distinct === 1) {
-            $inputfield->addOption($p->{$fields->select_field_options}, $p->{$fields->select_field_options});
-          } else {
-            $inputfield->addOption($p->id, $p->{$fields->select_field_options});
+
+          // if (array_key_exists($value, $vals)) {
+          //   $pids = $vals[$value] . '|' . $p->id;
+          //   $inputfield->removeOption($vals[$value]);
+          //   $vals[$value] = $pids;
+          //   $inputfield->addOption($pids, $value);
+          // } else {
+          //   $vals[$value] = $p->id;
+          //   $inputfield->addOption($p->id, $value);
+          // }
+
+          $value = $this->sanitizer->text($p->{$fields->select_field_options});
+          var_dump($p->name);
+          if ($value != '') {
+            if ((int)$fields->use_distinct === 1) {
+              $inputfield->addOption($value, $value);
+            } else {
+              $inputfield->addOption($p->id, $value);
+            }
           }
         }
       }
