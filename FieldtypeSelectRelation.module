@@ -111,11 +111,10 @@ class FieldtypeSelectRelation extends Fieldtype {
 
     $checkUseDistinctField = $this->modules->get('InputfieldCheckbox');
     $checkUseDistinctField->label = 'Enable unique values';
-    // $checkUseDistinctField->label2 = 'unique values';
     $checkUseDistinctField->attr('name', 'use_distinct');
     $checkUseDistinctField->attr('checked', empty($fields->use_distinct ? '' : 'checked'));
     $checkUseDistinctField->description = 'Check this field if you want to avoid duplicate values.';
-    $checkUseDistinctField->notes = 'If you check this field you can not reference via id, just the string get saved.';
+    $checkUseDistinctField->notes = 'If you enable this, the string value will be saved instead of the ID. You will not be able to reference via ID.';
     $inputfields->append($checkUseDistinctField);
 
     return $inputfields;
@@ -174,7 +173,6 @@ class FieldtypeSelectRelation extends Fieldtype {
           // }
 
           $value = $this->sanitizer->text($p->{$fields->select_field_options});
-          var_dump($p->name);
           if ($value != '') {
             if ((int)$fields->use_distinct === 1) {
               $inputfield->addOption($value, $value);
