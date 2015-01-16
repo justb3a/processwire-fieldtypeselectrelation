@@ -18,7 +18,7 @@ git clone https://github.com/justonestep/processwire-fieldtypeselectrelation.git
 
 ## Usage:
 
-After installing, you'll have a new "Select" fieldtype that will allow you to define the items you'd like in the drop down depending on another field.
+After installation, you'll have a new "Select" fieldtype that will allow you to define the items you'd like in the drop down depending on another field.
 
 * Create a new field and assign type **SelectRelation**
 * Click on the **Details** tab, there you find different fields to create your select list
@@ -33,7 +33,7 @@ After installing, you'll have a new "Select" fieldtype that will allow you to de
 If this field is not enabled the key is the ``pages_id`` and the value is the ``value from the other field``.
 
 ```HTML
-<select id="Inputfield_choosen_fruit" name="choosen_fruit">
+<select id="Inputfield_chosen_fruit" name="chosen_fruit">
   <option value=""></option>
   <option selected="selected" value="1026">Strawberry</option>
   <option value="1030">Apple</option>
@@ -43,26 +43,26 @@ If this field is not enabled the key is the ``pages_id`` and the value is the ``
 ```
 
 *Note:*
-If you change the value of a field the value changes too, if you deleted a value the value now is empty and multilingualism works like a charm.
+If you change the value of a field the value changes too. If you deleted a value the value now is empty and multilingualism works like a charm.
 
 Accessing the value:
 
 ```PHP
-$pages->get((int)$page->choosen_fruit)->title;
-$pages->get((int)$page->choosen_color)->color;
+$pages->get((int)$page->chosen_fruit)->title;
+$pages->get((int)$page->chosen_color)->color;
 ```
 
-``choosen_fruit`` and ``choosen_color`` are of the type **SelectRelation**.  
+``chosen_fruit`` and ``chosen_color`` are of the type **SelectRelation**.  
 ``title`` is the page title and ``color`` a simple input field (TextLanguage for example).
 
-In ``choosen_fruit`` the selected field is ``title``.
-And in ``choosen_color`` the selected field is ``color``.
+In ``chosen_fruit`` the selected field is ``title``.
+And in ``chosen_color`` the selected field is ``color``.
 
 ### Unique Values Enabled
 If this field is checked the key as well as the value are the ``value from the other field``.
 
 ```HTML
-<select id="Inputfield_choosen_color" name="choosen_color">
+<select id="Inputfield_chosen_color" name="chosen_color">
   <option value=""></option>
   <option value="red">red</option>
   <option value="green">green</option>
@@ -71,16 +71,16 @@ If this field is checked the key as well as the value are the ``value from the o
 ```
 
 If you don't check this box you might have duplicate colors (because there is more than one fruit which has a yellow color for example).  
-**BUT** if you change the value of an field, your already choosen value stays the same, because there isn't a relation via ID.
+**BUT** if you change the value of an field, your already chosen value stays the same, because there isn't a relation via ID.
 
-Access such a field as you are used to:
+Access such a field like you are used to:
 
 ```PHP
-$page->choosen_color;
+$page->chosen_color;
 ```
 
 **TL;DR:**
-I tryed to save a comma separated list for duplicate values, it works until you change anything.
-For example if you have two times color yellow '1034,1036' get saved.
+I tried to save a comma separated list for duplicate values .It works until you change anything.
+For example, if you have two times the color yellow a key of the kind '1034,1036' may get saved.
 Now assume you change a basic color (the banana turns brown :D), the selected value is now empty because a key like '1034,1036' doesn't exist anymore.
 And in the frontend you may get a wrong output. 
