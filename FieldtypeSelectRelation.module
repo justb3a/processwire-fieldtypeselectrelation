@@ -31,11 +31,95 @@ class FieldtypeSelectRelation extends Fieldtype {
   public static function getModuleInfo() {
     return array(
       'title' => 'Select Relation',
-      'version' => 001,
+      'version' => 002,
       'summary' => 'This Fieldtype creates a select list in relation to another field.',
       'href' => 'https://github.com/justonestep/processwire-fieldtypeselectrelation',
     );
   }
+
+  /**
+   * get config inputfields
+   *
+   * @param Field $fields
+   */
+  public function ___getConfigInputfields(Field $fields) {
+    $inputfields = parent::___getConfigInputfields($fields);
+
+    $chooseFieldField = $this->modules->get('InputfieldSelect');
+    $chooseFieldField->label = 'Field';
+    $chooseFieldField->attr('name', 'select_field_options');
+    $chooseFieldField->attr('value', $fields->select_field_options);
+    $chooseFieldField->description = $this->_('Select the field from which the select list should be populated.');
+    $chooseFieldField->addOption('', '');
+    $chooseFieldField->required = 1;
+    $chooseFieldField->columnWidth = 25;
+    foreach(wire('fields') as $field) {
+      if (
+        $field->type instanceof FieldFieldtypFieldFieldsetOpen
+        || $field->type instanceof FieldFieldtypeFieldFieldsetClose
+        || $field->type instanceof FieldFieldtypePassword
+        || $field->type instanceof FieldFieldtypeRepeater
+        || $field->type instanceof FieldFieldtypePage
+        || $field->type instanceof FieldFieldtypeFile
+        ) continue;
+
+      $chooseFieldField->addOption($field->id, (!empty($field->label) ? $field->label . ' (' . $field->name . ')' : $field->name));
+    }
+    $inputfields->append($chooseFieldField);
+
+    $chooseRepeaterField = $this->modules->get('InputfieldSelect');
+    $chooseRepeaterField->label = 'Repeater';
+    $chooseRepeaterField->attr('name', 'select_repeater_options');
+    $chooseRepeaterField->attr('value', $fields->select_repeater_options);
+    $chooseRepeaterField->description = $this->_('If the field you chose is included in a repeater, select the repeater here.');
+    $chooseRepeaterField->columnWidth = 25;
+
+    $chooseRepeaterField->addOption('', '');
+    foreach(wire('fields') as $field) {
+      if ($field->type instanceof FieldtypeRepeater) {
+        $chooseRepeaterField->addOption($field->id, (!empty($field->label) ? $field->label . ' (' . $field->name . ')' : $field->name));
+      }
+    }
+    $inputfields->append($chooseRepeaterField);
+
+    $chooseTemplateField = $this->modules->get('InputfieldAsmSelect');
+    $chooseTemplateField->label = 'Template(s)';
+    $chooseTemplateField->attr('name', 'select_template_options');
+    $chooseTemplateField->attr('value', $fields->select_template_options);
+    $chooseTemplateField->description = 'Optional: Restrict your result by setting certain template(s).';
+    $chooseTemplateField->columnWidth = 25;
+    $chooseTemplateField->addOption('', '');
+    foreach (wire('templates') as $template) {
+      $chooseTemplateField->addOption($template->id, (!empty($template->label) ? $template->label : $template->name));
+    }
+    $inputfields->append($chooseTemplateField);
+
+    $choosePagesField = $this->modules->get('InputfieldAsmSelect');
+    $choosePagesField->label = 'Page(s)';
+    $choosePagesField->attr('name', 'select_page_options');
+    $choosePagesField->attr('value', $fields->select_page_options);
+    $choosePagesField->description = 'Optional: Restrict your result by setting certain page(s).';
+    $choosePagesField->columnWidth = 25;
+    $choosePagesField->addOption('', '');
+    $pa = $this->pages->find('has_parent!=2,id!=2|7,status<' . Page::statusTrash . ',include=all');
+    foreach ($pa as $p) {
+      if (!empty($p->name)) {
+        $choosePagesField->addOption($p->id, $p->title);
+      }
+    }
+    $inputfields->append($choosePagesField);
+
+    $checkUseDistinctField = $this->modules->get('InputfieldCheckbox');
+    $checkUseDistinctField->label = 'Enable unique values';
+    $checkUseDistinctField->attr('name', 'use_distinct');
+    $checkUseDistinctField->attr('checked', empty($fields->use_distinct ? '' : 'checked'));
+    $checkUseDistinctField->description = 'Check this field if you want to avoid duplicate values.';
+    $checkUseDistinctField->notes = 'If you enable this, the string value will be saved instead of the ID. You will not be able to reference via ID.';
+    $inputfields->append($checkUseDistinctField);
+
+    return $inputfields;
+  }
+
 
   /**
    * getInputfield - get basic fields and their database schema
@@ -45,43 +129,60 @@ class FieldtypeSelectRelation extends Fieldtype {
    */
   public function getInputfield(Page $page, Field $fields) {
     if (!empty($fields->select_field_options)) {
+      $selector = array();
+      $allPages = $this->pages->find('has_parent!=2,id!=2|7,status<' . Page::statusTrash . ',include=all');
+
+      if (!empty($fields->select_template_options)) {
+        $selector[] = 'templates_id=' . implode('|', $fields->select_template_options);
+      }
+
+      if (!empty($fields->select_page_options)) {
+        $selector[] = 'id=' . implode('|', $fields->select_page_options);
+      }
+
+      $searchPages = (!empty($selector)) ? $this->pages->find(implode(',', $selector)) : $allPages;
       $inputfield = $this->modules->get('InputfieldSelect');
-      $user = wire('user');
 
-      // check if table is multi-lingual
-      $dbName = wire('config')->dbName;
-      $table = 'field_' . strtolower($fields->select_field_options);
-      $column = 'data';
+      foreach ($searchPages as $p) {
+        if (!empty($fields->select_repeater_options)) {
+          // it's an repeater
+          if ($p->{$fields->select_repeater_options}) {
+            foreach ($p->{$fields->select_repeater_options} as $r) {
 
-      if ($user->language->isDefaultLanguage === false) {
-        $langID = $user->language->id;
-        $checkColumn = 'data' . $langID;
+              $value = $this->sanitizer->text($r->{$fields->select_field_options});
+              if ($value != '') {
+                if ((int)$fields->use_distinct === 1) {
+                  $inputfield->addOption($value, $value);
+                } else {
+                  $inputfield->addOption($r->id, $value);
+                }
+              }
+            }
+          }
+        } else {
+          // normal field
 
-        $query = array(
-          'select' => 'SELECT COUNT(*) FROM information_schema.COLUMNS',
-          'where' => array(
-            ' WHERE TABLE_SCHEMA="' . $dbName . '"',
-            ' && TABLE_NAME="' . $table . '"',
-            ' && COLUMN_NAME="' . $checkColumn . '"'
-          )
-        );
+          // if (array_key_exists($value, $vals)) {
+          //   $pids = $vals[$value] . '|' . $p->id;
+          //   $inputfield->removeOption($vals[$value]);
+          //   $vals[$value] = $pids;
+          //   $inputfield->addOption($pids, $value);
+          // } else {
+          //   $vals[$value] = $p->id;
+          //   $inputfield->addOption($p->id, $value);
+          // }
 
-        $result = wire('db')->query($query['select'] . implode('', $query['where']));
-        $count = array();
-        while ($row = $result->fetch_row()) $count[] = $row[0];
-
-        if ((int)reset($count) > 0) {
-          $column = $checkColumn;
+          $value = $this->sanitizer->text($p->{$fields->select_field_options});
+          if ($value != '') {
+            if ((int)$fields->use_distinct === 1) {
+              $inputfield->addOption($value, $value);
+            } else {
+              $inputfield->addOption($p->id, $value);
+            }
+          }
         }
       }
 
-      $sql = 'SELECT DISTINCT ' . $column . ' FROM ' . $table . ' WHERE ' . $column . '!=""';
-      $optionResult = wire('db')->query($sql);
-      $options = array();
-      while ($row = $optionResult->fetch_row()) $options[] = $row[0];
-
-      // add options
-      foreach($options as $option) $inputfield->addOption($option, $option);
       return $inputfield;
     }
   }
@@ -109,38 +210,6 @@ class FieldtypeSelectRelation extends Fieldtype {
    */
   public function sanitizeValue(Page $page, Field $field, $value) {
     return trim($value);
-  }
-
-  /**
-   * get config inputfields
-   *
-   * @param Field $fields
-   */
-  public function ___getConfigInputfields(Field $fields) {
-    $excludeTypes = '"FieldtypeModule", "FieldtypePassword", "FieldtypePage", "FieldtypeFile", "FieldtypeRepeater"';
-    $query = array(
-      'select' => 'SELECT name FROM fields',
-      'where' => array(
-        ' WHERE type NOT IN (' . $excludeTypes . ')'
-      )
-    );
-
-    $result = wire('db')->query($query['select'] . implode('', $query['where']));
-    $options = array();
-    while ($row = $result->fetch_row()) $options[] = $row[0];
-
-    $inputfields = parent::___getConfigInputfields($fields);
-
-    // list of options
-    $inputfield = $this->modules->get('InputfieldSelect');
-    $inputfield->label = $this->_('Select Options');
-    $inputfield->attr('name', 'select_field_options');
-    $inputfield->attr('value', $fields->select_field_options);
-    $inputfield->description = $this->_('Select the field from which the select list should be filled.');
-    foreach($options as $option) $inputfield->addOption($option, $option);
-    $inputfields->append($inputfield);
-
-    return $inputfields;
   }
 
 }
