@@ -19,7 +19,7 @@
 /**
  * Class FieldtypeSelectRelation
  */
-class FieldtypeSelectRelation extends Fieldtype {
+class FieldtypeSelectRelation extends FieldtypeMulti {
 
   /**
    * Retrieves module meta data
@@ -126,6 +126,14 @@ class FieldtypeSelectRelation extends Fieldtype {
     $checkIncludeAll->columnWidth = 33;
     $inputfields->append($checkIncludeAll);
 
+    $checkUseAsmSelect = $this->modules->get('InputfieldCheckbox');
+    $checkUseAsmSelect->label = 'Enable multiple output';
+    $checkUseAsmSelect->attr('name', 'use_asmselect');
+    $checkUseAsmSelect->attr('checked', empty($fields->use_asmselect) ? '' : 'checked');
+    $checkUseAsmSelect->description = 'Include all hidden and unpublished pages and pages that user doesn\'t have access to view.';
+    $checkUseAsmSelect->columnWidth = 34;
+    $inputfields->append($checkUseAsmSelect);
+
     return $inputfields;
   }
 
@@ -151,7 +159,9 @@ class FieldtypeSelectRelation extends Fieldtype {
         $selector[] = 'id=' . implode('|', $fields->select_page_options);
       }
 
-      $inputfield = $this->modules->get('InputfieldSelect');
+      $inputType = ((int)$fields->use_asmselect === 1) ? 'InputfieldAsmSelect' : 'InputfieldSelect';
+      $inputfield = $this->modules->get($inputType);
+      $inputfield->attr('name', $fields->name);
 
       foreach ($this->pages->find(implode(',', $selector)) as $p) {
         if (!empty($fields->select_repeater_options)) {
@@ -170,18 +180,6 @@ class FieldtypeSelectRelation extends Fieldtype {
             }
           }
         } else {
-          // normal field
-
-          // if (array_key_exists($value, $vals)) {
-          //   $pids = $vals[$value] . '|' . $p->id;
-          //   $inputfield->removeOption($vals[$value]);
-          //   $vals[$value] = $pids;
-          //   $inputfield->addOption($pids, $value);
-          // } else {
-          //   $vals[$value] = $p->id;
-          //   $inputfield->addOption($p->id, $value);
-          // }
-
           $value = $this->sanitizer->text($p->{$fields->select_field_options});
           if ($value != '') {
             if ((int)$fields->use_distinct === 1) {
@@ -202,24 +200,58 @@ class FieldtypeSelectRelation extends Fieldtype {
    *
    * @param Field $field
    */
-  public function getDatabaseSchema(Field $field) {
-    $schema = parent::getDatabaseSchema($field);
-    $schema['data'] = 'text NOT NULL';
-    $schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(255))';
-    $schema['keys']['data'] = 'FULLTEXT KEY `data` (`data`)';
+    public function getDatabaseSchema(Field $field) {
+      $schema = parent::getDatabaseSchema($field);
+      $schema['data'] = 'int NOT NULL';
+      $schema['keys']['data'] = 'KEY data (data, pages_id, sort)';
+      return $schema;
+    }
 
-    return $schema;
-  }
+    public function getBlankValue(Page $page, Field $field) {
+      return array();
+    }
 
-  /**
-   * sanitizeValue
-   *
-   * @param Page $page
-   * @param Field $field
-   * @param string $value
-   */
-  public function sanitizeValue(Page $page, Field $field, $value) {
-    return trim($value);
-  }
+    public function sanitizeValue(Page $page, Field $field, $value) {
+      if (!$value)
+        return array();
+
+      if (!is_array($value))
+        $value = array($value);
+
+      foreach ($value as $k => $v) {
+        if (is_int($v))
+          continue;
+
+        // but we don't allow anything else
+        unset($value[$k]);
+      }
+
+      return $value;
+    }
+
+    public function ___wakeupValue(Page $page, Field $field, $value) {
+      $v = $this->getBlankValue($page, $field);
+
+      if (empty($value))
+        return $v;
+
+      foreach ($value as $pageID) {
+        $v[] = (int) $pageID;
+      }
+
+      return $v;
+    }
+
+    public function ___sleepValue(Page $page, Field $field, $value) {
+      $a = array();
+
+      foreach ($value as $pageId) {
+        if (is_int($pageId)) {
+          $a[] = $pageId;
+        }
+      }
+
+      return $a;
+    }
 
 }
