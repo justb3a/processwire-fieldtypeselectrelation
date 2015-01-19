@@ -115,7 +115,16 @@ class FieldtypeSelectRelation extends Fieldtype {
     $checkUseDistinctField->attr('checked', empty($fields->use_distinct) ? '' : 'checked');
     $checkUseDistinctField->description = 'Check this field if you want to avoid duplicate values.';
     $checkUseDistinctField->notes = 'If you enable this, the string value will be saved instead of the ID. You will not be able to reference via ID.';
+    $checkUseDistinctField->columnWidth = 33;
     $inputfields->append($checkUseDistinctField);
+
+    $checkIncludeAll = $this->modules->get('InputfieldCheckbox');
+    $checkIncludeAll->label = 'Enable including not only visible pages';
+    $checkIncludeAll->attr('name', 'include_all');
+    $checkIncludeAll->attr('checked', empty($fields->include_all) ? '' : 'checked');
+    $checkIncludeAll->description = 'Include all hidden and unpublished pages and pages that user doesn\'t have access to view.';
+    $checkIncludeAll->columnWidth = 33;
+    $inputfields->append($checkIncludeAll);
 
     return $inputfields;
   }
@@ -129,8 +138,10 @@ class FieldtypeSelectRelation extends Fieldtype {
    */
   public function getInputfield(Page $page, Field $fields) {
     if (!empty($fields->select_field_options)) {
-      $selector = array();
-      $allPages = $this->pages->find('has_parent!=2,id!=2|7,status<' . Page::statusTrash . ',include=all');
+      $selector = array('has_parent!=2,id!=2|7');
+      if ((int)$fields->include_all === 1) {
+        $selector[] = 'include=all';
+      }
 
       if (!empty($fields->select_template_options)) {
         $selector[] = 'templates_id=' . implode('|', $fields->select_template_options);
@@ -140,10 +151,9 @@ class FieldtypeSelectRelation extends Fieldtype {
         $selector[] = 'id=' . implode('|', $fields->select_page_options);
       }
 
-      $searchPages = (!empty($selector)) ? $this->pages->find(implode(',', $selector)) : $allPages;
       $inputfield = $this->modules->get('InputfieldSelect');
 
-      foreach ($searchPages as $p) {
+      foreach ($this->pages->find(implode(',', $selector)) as $p) {
         if (!empty($fields->select_repeater_options)) {
           // it's an repeater
           if ($p->{$fields->select_repeater_options}) {
