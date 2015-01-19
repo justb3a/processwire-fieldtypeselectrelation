@@ -207,8 +207,10 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
    */
     public function getDatabaseSchema(Field $field) {
       $schema = parent::getDatabaseSchema($field);
-      $schema['data'] = 'int NOT NULL';
-      $schema['keys']['data'] = 'KEY data (data, pages_id, sort)';
+      $schema['data'] = 'text NOT NULL';
+      $schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(255))';
+      $schema['keys']['data'] = 'FULLTEXT KEY data (data)';
+      $schema['keys']['sort'] = 'KEY sort (pages_id, sort)';
       return $schema;
     }
 
@@ -224,11 +226,11 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
         $value = array($value);
 
       foreach ($value as $k => $v) {
-        if (is_int($v))
+        if (is_int($v)) {
           continue;
-
-        // but we don't allow anything else
-        unset($value[$k]);
+        } else {
+          $value[$k] = trim($v);
+        }
       }
 
       return $value;
@@ -240,8 +242,8 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
       if (empty($value))
         return $v;
 
-      foreach ($value as $pageID) {
-        $v[] = (int) $pageID;
+      foreach ($value as $val) {
+        $v[] = $val;
       }
 
       return $v;
@@ -250,9 +252,11 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
     public function ___sleepValue(Page $page, Field $field, $value) {
       $a = array();
 
-      foreach ($value as $pageId) {
-        if (is_int($pageId)) {
-          $a[] = $pageId;
+      foreach ($value as $val) {
+        if (is_int($val)) {
+          $a[] = $val;
+        } else {
+          $a[] = trim($val);
         }
       }
 
