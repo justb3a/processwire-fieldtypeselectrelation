@@ -159,9 +159,14 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
         $selector[] = 'id=' . implode('|', $fields->select_page_options);
       }
 
-      $inputType = ((int)$fields->use_asmselect === 1) ? 'InputfieldAsmSelect' : 'InputfieldSelect';
+      $inputType = ((int)$fields->use_asmselect === 1) ? 'InputfieldAsmSelect' : 'InputfieldSelectMultiple';
       $inputfield = $this->modules->get($inputType);
       $inputfield->attr('name', $fields->name);
+
+      if ($inputType === 'InputfieldSelectMultiple') {
+        $inputfield->attr('size', 1);
+        $inputfield->attr('multiple', false);
+      }
 
       foreach ($this->pages->find(implode(',', $selector)) as $p) {
         if (!empty($fields->select_repeater_options)) {
