@@ -31,7 +31,6 @@ After installation, you'll have a new "Select" fieldtype that will allow you to 
 	* **Including not only visible pages:** optional, include all hidden and unpublished pages and pages that user doesn't have access to view
 	* **Multiple Output:** optional, multiple selection (using ASMSelect)
 
- Enable 
 
 ### Unique Values Disabled
 If this field is not enabled the key is the ``pages_id`` and the value is the ``value from the other field``.
