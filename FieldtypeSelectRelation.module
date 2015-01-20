@@ -9,7 +9,7 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  *
  * @author Tabea David <td@kf-interactive.com>
- * @version 0.0.1
+ * @version 0.0.3
  * @copyright Copyright (c) 2014 KF Interactive, www.kf-interactive.com, <info@kf-interactive.com>
  * @see https://github.com/justonestep/processwire-fieldtypeselectrelation
  * @see http://www.processwire.com
@@ -31,7 +31,7 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
   public static function getModuleInfo() {
     return array(
       'title' => 'Select Relation',
-      'version' => 002,
+      'version' => 003,
       'summary' => 'This Fieldtype creates a select list in relation to another field.',
       'href' => 'https://github.com/justonestep/processwire-fieldtypeselectrelation',
     );
