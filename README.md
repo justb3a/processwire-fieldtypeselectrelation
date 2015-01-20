@@ -28,6 +28,10 @@ After installation, you'll have a new "Select" fieldtype that will allow you to 
 	* **Page(s):** optional, restrict your result by setting certain page(s)
 	* **Unique Values:** optional, check this field if you want to avoid duplicate values   
 (If you enable this, the string value will be saved instead of the ID. You will not be able to reference via ID.)
+	* **Including not only visible pages:** optional, include all hidden and unpublished pages and pages that user doesn't have access to view
+	* **Multiple Output:** optional, multiple selection (using ASMSelect)
+
+ Enable 
 
 ### Unique Values Disabled
 If this field is not enabled the key is the ``pages_id`` and the value is the ``value from the other field``.
@@ -48,8 +52,13 @@ If you change the value of a field the value changes too. If you deleted a value
 Accessing the value:
 
 ```PHP
-$pages->get((int)$page->chosen_fruit)->title;
-$pages->get((int)$page->chosen_color)->color;
+// single select
+echo $pages->get((int)$page->chosen_color)->color;
+
+// multiple select
+foreach ($page->chosen_color as $p) {
+  echo $pages->get((int)$p)->color;
+}
 ```
 
 ``chosen_fruit`` and ``chosen_color`` are of the type **SelectRelation**.  
@@ -76,8 +85,22 @@ If you don't check this box you might have duplicate colors (because there is mo
 Access such a field like you are used to:
 
 ```PHP
-$page->chosen_color;
+// single select
+echo reset($page->chosen_color);
+
+// multiple select
+foreach ($page->chosen_color as $p) {
+  echo $p;
+}
 ```
+
+### Screens
+
+![Settings](https://github.com/justonestep/processwire-fieldtypeselectrelation/blob/master/screens/field-settings.png)
+
+
+![Fields](https://github.com/justonestep/processwire-fieldtypeselectrelation/blob/master/screens/fields.png)
+
 
 **TL;DR:**
 I tried to save a comma separated list for duplicate values .It works until you change anything.
