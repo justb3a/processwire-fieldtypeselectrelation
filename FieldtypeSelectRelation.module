@@ -130,7 +130,7 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
     $checkUseAsmSelect->label = 'Enable multiple output';
     $checkUseAsmSelect->attr('name', 'use_asmselect');
     $checkUseAsmSelect->attr('checked', empty($fields->use_asmselect) ? '' : 'checked');
-    $checkUseAsmSelect->description = 'Include all hidden and unpublished pages and pages that user doesn\'t have access to view.';
+    $checkUseAsmSelect->description = 'Enable multiple selection (using ASMSelect).';
     $checkUseAsmSelect->columnWidth = 34;
     $inputfields->append($checkUseAsmSelect);
 
