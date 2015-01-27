@@ -174,7 +174,13 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
           if ($p->{$fields->select_repeater_options}) {
             foreach ($p->{$fields->select_repeater_options} as $r) {
 
-              $value = $this->sanitizer->text($r->{$fields->select_field_options});
+              $value = '';
+              if (is_array($r->{$fields->select_field_options}) && !empty($r->{$fields->select_field_options})) {
+                $value = $this->sanitizer->text($r->{$fields->select_field_options}[0]);
+              } elseif (!empty($r->{$fields->select_field_options})) {
+                $value = $this->sanitizer->text($r->{$fields->select_field_options});
+              }
+
               if ($value != '') {
                 if ((int)$fields->use_distinct === 1) {
                   $inputfield->addOption($value, $value);
@@ -185,7 +191,13 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
             }
           }
         } else {
-          $value = $this->sanitizer->text($p->{$fields->select_field_options});
+          $value = '';
+          if (is_array($p->{$fields->select_field_options}) && !empty($p->{$fields->select_field_options})) {
+            $value = $this->sanitizer->text($p->{$fields->select_field_options}[0]);
+          } elseif (!empty($p->{$fields->select_field_options})) {
+            $value = $this->sanitizer->text($p->{$fields->select_field_options});
+          }
+
           if ($value != '') {
             if ((int)$fields->use_distinct === 1) {
               $inputfield->addOption($value, $value);
