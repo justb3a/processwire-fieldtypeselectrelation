@@ -195,7 +195,32 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
           if (is_array($p->{$fields->select_field_options}) && !empty($p->{$fields->select_field_options})) {
             $value = $this->sanitizer->text($p->{$fields->select_field_options}[0]);
           } elseif (!empty($p->{$fields->select_field_options})) {
-            $value = $this->sanitizer->text($p->{$fields->select_field_options});
+
+            if (wire('fields')->get($fields->select_field_options)->type instanceof \FieldtypeRepeater) {
+              // field is a repeater
+              foreach ($p->{$fields->select_field_options} as $test) {
+                $values = array();
+                foreach ($test->fields as $ff) {
+                  if (is_array($test->{$ff->name}) && !empty($test->{$ff->name})) {
+                    $values[] = $test->{$ff->name}[0];
+                  } else {
+                    $values[] = $test->{$ff->name};
+                  }
+                }
+
+                $val = $this->sanitizer->text(implode(', ', $values));
+                if ($val != '') {
+                  if ((int)$fields->use_distinct === 1) {
+                    $inputfield->addOption($val, $val);
+                  } else {
+                    $inputfield->addOption($test->id, $val);
+                  }
+                }
+              }
+
+            } else {
+              $value = $this->sanitizer->text($p->{$fields->select_field_options});
+            }
           }
 
           if ($value != '') {
@@ -217,14 +242,14 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
    *
    * @param Field $field
    */
-    public function getDatabaseSchema(Field $field) {
-      $schema = parent::getDatabaseSchema($field);
-      $schema['data'] = 'text NOT NULL';
-      $schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(255))';
-      $schema['keys']['data'] = 'FULLTEXT KEY data (data)';
-      $schema['keys']['sort'] = 'KEY sort (pages_id, sort)';
-      return $schema;
-    }
+  public function getDatabaseSchema(Field $field) {
+    $schema = parent::getDatabaseSchema($field);
+    $schema['data'] = 'text NOT NULL';
+    $schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(255))';
+    $schema['keys']['data'] = 'FULLTEXT KEY data (data)';
+    $schema['keys']['sort'] = 'KEY sort (pages_id, sort)';
+    return $schema;
+  }
 
   /**
    * get blank value
@@ -233,9 +258,9 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
    * @param Field $field
    * @return array
    */
-    public function getBlankValue(Page $page, Field $field) {
-      return array();
-    }
+  public function getBlankValue(Page $page, Field $field) {
+    return array();
+  }
 
   /**
    * sanitize value
@@ -245,23 +270,23 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
    * @param array $value
    * @return array
    */
-    public function sanitizeValue(Page $page, Field $field, $value) {
-      if (!$value)
-        return array();
+  public function sanitizeValue(Page $page, Field $field, $value) {
+    if (!$value)
+      return array();
 
-      if (!is_array($value))
-        $value = array($value);
+    if (!is_array($value))
+      $value = array($value);
 
-      foreach ($value as $k => $v) {
-        if (is_int($v)) {
-          continue;
-        } else {
-          $value[$k] = trim($v);
-        }
+    foreach ($value as $k => $v) {
+      if (is_int($v)) {
+        continue;
+      } else {
+        $value[$k] = trim($v);
       }
-
-      return $value;
     }
+
+    return $value;
+  }
 
   /**
    * wakeup value
@@ -271,18 +296,18 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
    * @param array $value
    * @return array
    */
-    public function ___wakeupValue(Page $page, Field $field, $value) {
-      $v = $this->getBlankValue($page, $field);
+  public function ___wakeupValue(Page $page, Field $field, $value) {
+    $v = $this->getBlankValue($page, $field);
 
-      if (empty($value))
-        return $v;
-
-      foreach ($value as $val) {
-        $v[] = $val;
-      }
-
+    if (empty($value))
       return $v;
+
+    foreach ($value as $val) {
+      $v[] = $val;
     }
+
+    return $v;
+  }
 
   /**
    * sleep value
@@ -292,18 +317,18 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
    * @param array $value
    * @return array
    */
-    public function ___sleepValue(Page $page, Field $field, $value) {
-      $a = array();
+  public function ___sleepValue(Page $page, Field $field, $value) {
+    $a = array();
 
-      foreach ($value as $val) {
-        if (is_int($val)) {
-          $a[] = $val;
-        } else {
-          $a[] = trim($val);
-        }
+    foreach ($value as $val) {
+      if (is_int($val)) {
+        $a[] = $val;
+      } else {
+        $a[] = trim($val);
       }
-
-      return $a;
     }
+
+    return $a;
+  }
 
 }
