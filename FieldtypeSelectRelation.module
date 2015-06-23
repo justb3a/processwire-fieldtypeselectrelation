@@ -198,22 +198,24 @@ class FieldtypeSelectRelation extends FieldtypeMulti {
 
             if (wire('fields')->get($fields->select_field_options)->type instanceof \FieldtypeRepeater) {
               // field is a repeater
-              foreach ($p->{$fields->select_field_options} as $test) {
-                $values = array();
-                foreach ($test->fields as $ff) {
-                  if (is_array($test->{$ff->name}) && !empty($test->{$ff->name})) {
-                    $values[] = $test->{$ff->name}[0];
-                  } else {
-                    $values[] = $test->{$ff->name};
+              foreach ($p->{$fields->select_field_options} as $rpage) {
+                if ($rpage->status === 1) {
+                  $values = array();
+                  foreach ($rpage->fields as $ff) {
+                    if (is_array($rpage->{$ff->name}) && !empty($rpage->{$ff->name})) {
+                      $values[] = $rpage->{$ff->name}[0];
+                    } else {
+                      $values[] = $rpage->{$ff->name};
+                    }
                   }
-                }
 
-                $val = $this->sanitizer->text(implode(', ', $values));
-                if ($val != '') {
-                  if ((int)$fields->use_distinct === 1) {
-                    $inputfield->addOption($val, $val);
-                  } else {
-                    $inputfield->addOption($test->id, $val);
+                  $val = $this->sanitizer->text(implode(', ', $values));
+                  if ($val != '') {
+                    if ((int)$fields->use_distinct === 1) {
+                      $inputfield->addOption($val, $val);
+                    } else {
+                      $inputfield->addOption($rpage->id, $val);
+                    }
                   }
                 }
               }
